@@ -16,9 +16,11 @@ app.use(webpackDevMiddleware(webpack(WebpackConfig), {
   }
 }))
 
+app.use(rewrite('/props-2.0/ssr*', '/props-2.0/ssr.html'))
+
 fs.readdirSync(__dirname).forEach(file => {
   if (fs.statSync(path.join(__dirname, file)).isDirectory()) {
-    app.use(rewrite('/' + file + '/*', '/' + file + '/index.html'))
+    app.use(rewrite(new RegExp('/' + file + '/(^(ssr))'), '/' + file + '/index.html'))
   }
 })
 

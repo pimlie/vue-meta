@@ -9,7 +9,10 @@ export default {
   mode: 'development',
   entry: fs.readdirSync(__dirname).reduce((entries, dir) => {
     const fullDir = path.join(__dirname, dir)
-    const entry = path.join(fullDir, 'app.js')
+    let entry = path.join(fullDir, 'client.js')
+    if (!fs.existsSync(entry)) {
+      entry = path.join(fullDir, 'app.js')
+    }
     if (fs.statSync(fullDir).isDirectory() && fs.existsSync(entry)) {
       entries[dir] = entry
     }

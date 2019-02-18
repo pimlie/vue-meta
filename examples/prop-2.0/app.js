@@ -1,132 +1,56 @@
 import Vue from 'vue'
 
-import { isString } from '../../src/shared/typeof'
+function createApp({ __vm_head } = {}) {
+  return new Vue({
+    head() {
+      return {
+        staticChilds: [
+          { tag: 'link', rel: 'stylesheet', href: '/global.css' }
+        ],
+        charset: this.charset,
+        description: 'Helluuuuuuuw?'
+      }
+    },
+    beforeCreate() {
+      if (typeof this.$options.head === 'function') {
+        this.$options.computed = this.$options.computed || {}
+        this.$options.computed.$head = this.$options.head
 
-const uniqueMeta = [
-  'charset',
-  { name: 'application-name', lang: true },
-  { name: 'description' },
-  { 'http-equiv': true }
-]
-
-function createId(data) {
-  let isU
-  for (const i in uniqueMeta) {
-    const conf = uniqueMeta[i]
-
-    const isS = isString(conf)
-    if (isS && data[conf]) {
-      return conf
-    } else if (!isS) {
-      isU = true
-      let hid = ''
-      for (const k in conf) {
-        if (!data[k] || !(conf[k] === true || conf[k] === data[k])) {
-          isU = false
-          break
-        } else {
-          hid = `${hid}-${conf[k] === true ? k : data[k]}`
+        if (__vm_head) {
+          this.$options.created = this.$options.created || []
+          this.$options.created.push(() => {
+            this.$watch('$head', (newVal) => {
+              Vue.set(__vm_head, 'metaInfo', newVal)
+            })
+          })
         }
       }
-
-      if (isU) {
-        return hid.substr(1)
+    },
+    props: {
+      charset: {
+        type: String,
+        default: 'utf-8'
       }
+    },
+    render(h) {
+      return h('div', {
+        attrs: {
+          id: 'app'
+        }
+      }, [
+        h('h1', {}, 'VM2.0 Tryout'),
+        h('p', {}, [
+          'Inspect Element to see the meta info, try both ',
+          h('a', { attrs: { href: '/prop-2.0' } }, 'browser only'),
+          ' as ',
+          h('a', { attrs: { href: '/prop-2.0/ssr.html' } }, 'ssr'),
+        ]),
+        h('p', {}, [
+          'Regenerate ssr.html by running `node -r esm server.js`'
+        ])
+      ])
     }
-  }
-
-  return null
+  })
 }
 
-let mcid = 0
-const MetaComponent = Vue.extend({
-  name: 'meta-component',
-  props: {
-    hid: String,
-    charset: String,
-    name: String,
-    httpEquiv: String,
-    itemprop: String,
-    lang: String,
-    content: String
-  },
-  data: function () {
-    return {
-      _hid: this.hid,
-    }
-  },
-  beforeMount: function () {
-    if (!this.hid) {
-      this._hid = `mc-${createId(this)}`
-    }
-
-    const $cmpnt = this.$el ? this : this.$parent
-    if ($cmpnt && $cmpnt.$el) {
-      for (const prop in this.$props) {
-        const propValue = $cmpnt.$el.getAttribute(prop)
-        if (propValue) {
-          
-          $cmpnt[prop === 'hid' ? '_hid' : prop] = propValue
-        }
-      }
-    }
-  },
-  render: function (h) {
-    return h('meta', {
-      attrs: {
-        ...this.$props,
-        hid: this.hid || this._hid || `mcn-${mcid++}`
-      }
-    })
-  }
-})
-
-Vue.component('meta-component', MetaComponent)
-
-const charsetMeta = new Vue({
-  data: {
-    charset: 'utf-8'
-  },
-  render(h) {
-    return h('meta-component', {
-      props: { ...this.$data }
-    })
-  }
-})
-
-const descriptionMeta = new Vue({
-  data: {
-    description: 'Hellluuuuww?'
-  },
-  render(h) {
-    return h('meta-component', {
-      props: { 
-        name: 'description',
-        content: this.description
-      }
-    })
-  }
-})
-
-const head = document.getElementsByTagName('head')[0]
-
-let el, $el
-el = document.querySelector('[hid="mc-charset"]')
-$el = charsetMeta.$mount(el).$el
-if (!el) head.appendChild($el)
-
-el = document.querySelector('[hid="mc-description"]')
-$el = descriptionMeta.$mount(el).$el
-if (!el) head.appendChild($el)
-
-let mc
-document.querySelectorAll('[hid^="mcn-"]').forEach(el => {
-  mc = new MetaComponent()
-  mc.$mount(el)
-})
-
-setTimeout(() => {
-  charsetMeta.charset = 'utf-16'
-  descriptionMeta.description = 'Whaaaaaaaaaaaaaaaaaaaaaaaaaaaat?'
-  mc.content = 'Its a me, Mario!'
-}, 3000)
+export default createApp
